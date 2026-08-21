@@ -33,7 +33,7 @@ jobs:
 
   flash:
     needs: build
-    runs-on: self-hosted   # <-- this job runs on your Pi
+    runs-on: self-hosted   # <-- this job runs on your Pi, 
     steps:
       - name: Download firmware
         uses: actions/download-artifact@v4
