@@ -1,0 +1,47 @@
+# .github/workflows/flash.yml
+name: Build and Flash Arduino
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install arduino-cli
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+          echo "$PWD/bin" >> $GITHUB_PATH
+
+      - name: Install core
+        run: |
+          bin/arduino-cli core update-index
+          bin/arduino-cli core install arduino:avr
+
+      - name: Compile sketch
+        run: |
+          bin/arduino-cli compile --fqbn arduino:avr:uno sketch --output-dir build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: build/sketch.ino.hex
+
+  flash:
+    needs: build
+    runs-on: self-hosted   # <-- this job runs on your Pi
+    steps:
+      - name: Download firmware
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware
+          path: ./firmware
+
+      - name: Flash via avrdude
+        run: |
+          avrdude -v -p atmega328p -c arduino -P /dev/ttyUSB0 -b 115200 \
+            -U flash:w:./firmware/sketch.ino.hex:i
